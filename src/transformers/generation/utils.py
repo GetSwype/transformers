@@ -1413,7 +1413,7 @@ class GenerationMixin:
                 )
 
             # 11. run greedy search
-            return self.greedy_search(
+            yield from self.greedy_search(
                 input_ids,
                 logits_processor=logits_processor,
                 stopping_criteria=stopping_criteria,
@@ -2244,6 +2244,7 @@ class GenerationMixin:
             # argmax
             next_tokens = torch.argmax(next_tokens_scores, dim=-1)
 
+
             # finished sentences should have their next token be a padding token
             if eos_token_id is not None:
                 if pad_token_id is None:
@@ -2265,10 +2266,12 @@ class GenerationMixin:
             # stop when each sentence is finished, or if we exceed the maximum length
             if unfinished_sequences.max() == 0 or stopping_criteria(input_ids, scores):
                 if not synced_gpus:
-                    break
+                    return
                 else:
                     this_peer_finished = True
-
+    
+            yield next_tokens
+    
         if return_dict_in_generate:
             if self.config.is_encoder_decoder:
                 return GreedySearchEncoderDecoderOutput(
